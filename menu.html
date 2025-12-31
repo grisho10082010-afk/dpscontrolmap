@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Меню</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="page">
+    <div class="card">
+      <h2 style="margin:0">ДПС Карта</h2>
+      <div class="small" style="margin-top:8px">
+        Локально: сайт на <b>127.0.0.1:8000</b><br>
+        Чтобы бот читал группу: BotFather → <b>/setprivacy</b> → Disable
+      </div>
+
+      <div class="grid">
+        <a class="btn" href="/map">
+          <div>
+            <div style="font-weight:700">Карта</div>
+            <div class="badge">просмотр точек</div>
+          </div>
+          <div>→</div>
+        </a>
+
+        <a class="btn" href="/admin">
+          <div>
+            <div style="font-weight:700">Админка</div>
+            <div class="badge">удаление / очистка</div>
+          </div>
+          <div>→</div>
+        </a>
+
+        <a class="btn" href="/places">
+          <div>
+            <div style="font-weight:700">Точки (JSON)</div>
+            <div class="badge">debug</div>
+          </div>
+          <div>→</div>
+        </a>
+
+        <a class="btn" href="/config">
+          <div>
+            <div style="font-weight:700">Конфиг (JSON)</div>
+            <div class="badge">центр/TTL</div>
+          </div>
+          <div>→</div>
+        </a>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

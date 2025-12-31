@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Админ панель</title>
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    body { margin:0; background:#0b1220; }
+    .wrap{ max-width:1100px; margin:0 auto; padding: clamp(14px, 3vw, 24px); color:#eaf0ff; }
+    input { padding:10px; border:1px solid #ddd; border-radius: 12px; width: min(520px, 100%); }
+    .row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+    .tableWrap{ overflow:auto; border:1px solid rgba(255,255,255,.12); border-radius:14px; margin-top:12px; background:rgba(255,255,255,.92); color:#111; }
+    table { width:100%; border-collapse: collapse; min-width: 820px; }
+    th, td { border-bottom: 1px solid #eee; padding: 10px; text-align:left; font-size:13px; white-space: nowrap; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <h2 style="margin:0 0 10px 0;">Админ панель</h2>
+
+  <div class="row">
+    <input id="token" placeholder="ADMIN_TOKEN" />
+    <button id="save">Сохранить</button>
+    <button id="reload">Обновить</button>
+    <button id="clear">Очистить ВСЁ</button>
+    <a href="/" style="margin-left:auto;color:#eaf0ff">← Меню</a>
+  </div>
+
+  <div id="status" style="margin-top:10px;"></div>
+
+  <div class="tableWrap">
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Название</th>
+          <th>Координаты</th>
+          <th>last_seen</th>
+          <th>confirmations</th>
+          <th>bearing</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+  const tokenEl = document.getElementById("token");
+  const statusEl = document.getElementById("status");
+  const tbody = document.getElementById("tbody");
+
+  tokenEl.value = localStorage.getItem("admin_token") || "";
+
+  function setStatus(html) { statusEl.innerHTML = html; }
+  function headers() { return { "X-Admin-Token": tokenEl.value.trim() }; }
+
+  async function load() {
+    tbody.innerHTML = "";
+    setStatus("Загрузка...");
+    const res = await fetch("/admin/places", { headers: headers(), cache: "no-store" });
+    if (!res.ok) { setStatus(`Ошибка: ${res.status}`); return; }
+    const data = await res.json();
+    setStatus(`OK: точек <b>${data.length}</b>`);
+
+    for (const p of data) {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${p.id}</td>
+        <td>${p.name ?? ""}</td>
+        <td>${Number(p.lat).toFixed(6)}, ${Number(p.lon).toFixed(6)}</td>
+        <td>${p.last_seen_at ?? p.created_at ?? ""}</td>
+        <td>${p.confirmations ?? 1}</td>
+        <td>${(p.bearing ?? "")}</td>
+        <td><button data-id="${p.id}">Удалить</button></td>
+      `;
+      tr.querySelector("button").onclick = async () => {
+        const id = tr.querySelector("button").dataset.id;
+        const r = await fetch("/admin/place/" + id, { method: "DELETE", headers: headers() });
+        if (!r.ok) { setStatus(`Ошибка удаления: ${r.status}`); return; }
+        await load();
+      };
+      tbody.appendChild(tr);
+    }
+  }
+
+  document.getElementById("save").onclick = () => {
+    localStorage.setItem("admin_token", tokenEl.value.trim());
+    setStatus("Токен сохранён");
+  };
+  document.getElementById("reload").onclick = load;
+  document.getElementById("clear").onclick = async () => {
+    if (!confirm("Точно удалить ВСЕ точки?")) return;
+    const r = await fetch("/admin/clear", { method: "POST", headers: headers() });
+    if (!r.ok) { setStatus(`Ошибка очистки: ${r.status}`); return; }
+    await load();
+  };
+
+  load();
+</script>
+</body>
+</html>

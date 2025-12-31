@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Карта</title>
+
+  <!-- Leaflet CDN -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
+
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="brand">Карта</div>
+
+    <button class="btn" id="btnCity">Показать город</button>
+    <button class="btn" id="btnMyLoc">Моя геопозиция</button>
+
+    <div class="status" id="status">Загрузка…</div>
+  </header>
+
+  <main id="map"></main>
+
+  <script>
+    const statusEl = document.getElementById("status");
+    const setStatus = (t) => statusEl.textContent = t;
+
+    // ✅ Поставь тут центр “твоего города”
+    const CITY_CENTER = [54.836, 37.61]; // пример
+    const CITY_ZOOM = 12;
+
+    let map;
+    let myMarker = null;
+    let myCircle = null;
+
+    function initMap() {
+      if (!window.L) {
+        setStatus("Leaflet не загрузился");
+        alert("Leaflet не загрузился. Проверь интернет/блокировщики.");
+        return;
+      }
+
+      map = L.map("map").setView(CITY_CENTER, CITY_ZOOM);
+
+      // Основной слой (OSM)
+      const osm = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution: "&copy; OpenStreetMap"
+      });
+
+      // Запасной слой (Carto) — иногда помогает, если OSM блокируется
+      const carto = L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
+        maxZoom: 19,
+        attribution: "&copy; OpenStreetMap &copy; CARTO"
+      });
+
+      osm.addTo(map);
+
+      L.control.layers(
+        { "OSM": osm, "CARTO": carto },
+        {},
+        { position: "topright" }
+      ).addTo(map);
+
+      setStatus("Готово ✅");
+    }
+
+    function showCity() {
+      if (!map) return;
+      map.setView(CITY_CENTER, CITY_ZOOM);
+      setStatus("Показан город");
+    }
+
+    function showMyLocation() {
+      if (!map) return;
+
+      if (!navigator.geolocation) {
+        setStatus("Геолокация недоступна");
+        alert("В этом браузере геолокация не поддерживается.");
+        return;
+      }
+
+      setStatus("Запрашиваю геопозицию…");
+
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const lat = pos.coords.latitude;
+          const lon = pos.coords.longitude;
+          const acc = pos.coords.accuracy;
+
+          // удаляем старые отметки
+          if (myMarker) map.removeLayer(myMarker);
+          if (myCircle) map.removeLayer(myCircle);
+
+          myMarker = L.marker([lat, lon]).addTo(map).bindPopup("Вы здесь 📍");
+          myCircle = L.circle([lat, lon], { radius: acc }).addTo(map);
+
+          map.setView([lat, lon], 15);
+          setStatus(`Геопозиция: ${lat.toFixed(5)}, ${lon.toFixed(5)} (±${Math.round(acc)}м)`);
+          myMarker.openPopup();
+        },
+        (err) => {
+          console.log(err);
+          if (err.code === 1) {
+            setStatus("Доступ к геолокации запрещён");
+            alert("Разреши доступ к геолокации в браузере и попробуй снова.");
+          } else if (err.code === 2) {
+            setStatus("Не удалось определить геолокацию");
+            alert("Не удалось определить геолокацию. Проверь GPS/интернет.");
+          } else {
+            setStatus("Ошибка геолокации");
+            alert("Ошибка геолокации.");
+          }
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 12000,
+          maximumAge: 0
+        }
+      );
+    }
+
+    window.addEventListener("load", () => {
+      initMap();
+
+      document.getElementById("btnCity").addEventListener("click", showCity);
+      document.getElementById("btnMyLoc").addEventListener("click", showMyLocation);
+    });
+  </script>
+
+</body>
+</html>
